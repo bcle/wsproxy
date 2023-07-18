@@ -1,7 +1,7 @@
 package main
 
 import (
-	"crypto/tls"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"net/http"
@@ -9,7 +9,7 @@ import (
 
 	"github.com/chzyer/readline"
 	"github.com/fatih/color"
-	"github.com/gorilla/websocket"
+	"nhooyr.io/websocket"
 )
 
 type session struct {
@@ -22,14 +22,20 @@ func connect(url, origin string, rlConf *readline.Config, allowInsecure bool) er
 	headers := make(http.Header)
 	headers.Add("Origin", origin)
 
-	dialer := websocket.Dialer{
-		Proxy: http.ProxyFromEnvironment,
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: allowInsecure,
-		},
+	/*
+		dialer := websocket.Dialer{
+			Proxy: http.ProxyFromEnvironment,
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: allowInsecure,
+			},
+			Subprotocols: []string{"echo"},
+		}
+	*/
+	opts := websocket.DialOptions{
 		Subprotocols: []string{"echo"},
+		HTTPHeader:   headers,
 	}
-	ws, _, err := dialer.Dial(url, headers)
+	ws, _, err := websocket.Dial(context.Background(), url, &opts)
 	if err != nil {
 		return err
 	}
@@ -60,7 +66,7 @@ func (s *session) readConsole() {
 			return
 		}
 
-		err = s.ws.WriteMessage(websocket.TextMessage, []byte(line))
+		err = s.ws.Write(context.Background(), websocket.MessageText, []byte(line))
 		if err != nil {
 			s.errChan <- err
 			return
@@ -77,7 +83,7 @@ func (s *session) readWebsocket() {
 	rxSprintf := color.New(color.FgGreen).SprintfFunc()
 
 	for {
-		msgType, buf, err := s.ws.ReadMessage()
+		msgType, buf, err := s.ws.Read(context.Background())
 		if err != nil {
 			s.errChan <- err
 			return
@@ -85,9 +91,9 @@ func (s *session) readWebsocket() {
 
 		var text string
 		switch msgType {
-		case websocket.TextMessage:
+		case websocket.MessageText:
 			text = string(buf)
-		case websocket.BinaryMessage:
+		case websocket.MessageBinary:
 			text = bytesToFormattedHex(buf)
 		default:
 			s.errChan <- fmt.Errorf("unknown websocket frame type: %d", msgType)
