@@ -5,6 +5,7 @@ go 1.19
 require (
 	github.com/chzyer/readline v1.5.1
 	github.com/fatih/color v1.15.0
+	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.7.0
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0
 	nhooyr.io/websocket v1.8.7
