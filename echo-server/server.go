@@ -52,8 +52,10 @@ func (s echoServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // the received message back to it.
 // The entire function has 10s to complete.
 func echo(ctx context.Context, c *websocket.Conn, l *rate.Limiter) error {
-	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
-	defer cancel()
+	/*
+		ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+		defer cancel()
+	*/
 
 	err := l.Wait(ctx)
 	if err != nil {

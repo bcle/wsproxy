@@ -21,6 +21,7 @@ type session struct {
 func connect(url, origin string, rlConf *readline.Config, allowInsecure bool) error {
 	headers := make(http.Header)
 	headers.Add("Origin", origin)
+	headers.Add("Foo", "bar")
 
 	/*
 		dialer := websocket.Dialer{
