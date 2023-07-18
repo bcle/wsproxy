@@ -15,9 +15,9 @@ func copyToNetFromWs(
 	ctx context.Context,
 	dst *net.TCPConn,
 	src *websocket.Conn,
-	cancel chan<- string, // to signal that the source is done
+	doneChan chan<- string, // to signal that the source is done
 ) {
-	defer func() { cancel <- "websocket" }()
+	defer func() { doneChan <- "websocket" }()
 	defer dst.CloseWrite()
 	var totalWritten int64
 	for {
@@ -48,9 +48,9 @@ func copyToWsFromNet(
 	ctx context.Context,
 	dst *websocket.Conn,
 	src *net.TCPConn,
-	cancel chan<- string, // to signal that the source is done
+	doneChan chan<- string, // to signal that the source is done
 ) {
-	defer func() { cancel <- src.RemoteAddr().String() }()
+	defer func() { doneChan <- src.RemoteAddr().String() }()
 	writer, err := dst.Writer(ctx, websocket.MessageBinary)
 	if err != nil {
 		log.Errorf("failed to get writer from ws: %s", err)
@@ -72,14 +72,14 @@ func copyToWsFromNet(
 func Join(ctx context.Context, ws *websocket.Conn, n *net.TCPConn) {
 	log.Debugf("joining websocket to network connection for %s",
 		n.RemoteAddr().String())
-	cancel := make(chan string, 2)
-	go copyToWsFromNet(ctx, ws, n, cancel)
-	go copyToNetFromWs(ctx, n, ws, cancel)
-	closedSrc := <-cancel
+	doneChan := make(chan string, 2)
+	go copyToWsFromNet(ctx, ws, n, doneChan)
+	go copyToNetFromWs(ctx, n, ws, doneChan)
+	closedSrc := <-doneChan
 	log.Infof("1st source to close: %s", closedSrc)
 	timer := time.NewTimer(maxTeardownTimeInSeconds * time.Second)
 	select {
-	case closedSrc = <-cancel:
+	case closedSrc = <-doneChan:
 		log.Infof("2nd source to close: %s (all done)", closedSrc)
 		timer.Stop()
 	case <-timer.C:
