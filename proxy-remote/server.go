@@ -28,9 +28,14 @@ func (s proxyServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	destination := r.Header.Get("destination")
+	if destination == "" {
+		wsClose(ws, websocket.StatusPolicyViolation, "destination header missing")
+		return
+	}
 	conn, err := net.Dial("tcp", destination)
 	if err != nil {
 		wsClose(ws, websocket.StatusBadGateway, "failed to connect to destination")
+		return
 	}
 
 	tcpConn := conn.(*net.TCPConn)

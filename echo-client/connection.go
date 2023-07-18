@@ -23,17 +23,8 @@ func connect(url, origin string, rlConf *readline.Config, allowInsecure bool) er
 	headers.Add("Origin", origin)
 	headers.Add("Foo", "bar")
 
-	/*
-		dialer := websocket.Dialer{
-			Proxy: http.ProxyFromEnvironment,
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: allowInsecure,
-			},
-			Subprotocols: []string{"echo"},
-		}
-	*/
 	opts := websocket.DialOptions{
-		Subprotocols: []string{"echo"},
+		Subprotocols: []string{"wsproxy"},
 		HTTPHeader:   headers,
 	}
 	ws, _, err := websocket.Dial(context.Background(), url, &opts)
