@@ -17,9 +17,9 @@ func main() {
 	var remoteUrl string
 	var destinationAddr string
 
-	flag.StringVar(&listenAddr, "listen-address", ":8087", "The address to listen on")
+	flag.StringVar(&listenAddr, "listen-address", ":8087", "The host:port address to listen on")
 	flag.StringVar(&remoteUrl, "remote-url", "ws://localhost:8088", "The URL of the remote proxy")
-	flag.StringVar(&destinationAddr, "destination-address", "", "The address of the final destination")
+	flag.StringVar(&destinationAddr, "destination-address", "", "The host:port address of the final destination")
 	flag.StringVar(&subProtocol, "subprotocol", "wsproxy", "The websocket subprotocol name")
 	flag.BoolVar(&verbose, "verbose", false, "Verbose logging")
 	flag.BoolVar(&help, "help", false, "Show usage")
