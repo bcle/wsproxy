@@ -44,29 +44,6 @@ func copyToNetFromWs(
 	return
 }
 
-/*
-func copy(dst io.Writer, src io.Reader) (written int64, err error) {
-	buf := make([]byte, 4096)
-	for {
-		numRead, err2 := src.Read(buf)
-		if numRead > 0 {
-			log.Debugf("read %d bytes", numRead)
-			numWritten, err3 := dst.Write(buf[:numRead])
-			if err3 != nil {
-				return written, fmt.Errorf("failed to write: %s", err3)
-			}
-			written += int64(numWritten)
-			log.Debugf("wrote %d bytes (%d total)", numWritten, written)
-		}
-		if err2 != nil {
-			log.Debugf("read error: %s", err2)
-			return written, err2
-		}
-	}
-	return
-}
-*/
-
 func copyToWsFromNet(
 	ctx context.Context,
 	dst *websocket.Conn,
@@ -81,13 +58,13 @@ func copyToWsFromNet(
 	for {
 		numRead, readErr := src.Read(buf)
 		if numRead > 0 {
-			log.Debugf("read %d bytes", numRead)
+			log.Tracef("read %d bytes", numRead)
 			writeErr := dst.Write(ctx, websocket.MessageBinary, buf[:numRead])
 			if writeErr != nil {
 				log.Warnf("failed to write to websocket: %s", writeErr)
 			} else {
 				numWritten += numRead
-				log.Debugf("wrote %d bytes (%d total)", numRead, numWritten)
+				log.Tracef("wrote %d bytes (%d total)", numRead, numWritten)
 			}
 		}
 		if readErr != nil {
