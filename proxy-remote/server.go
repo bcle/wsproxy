@@ -32,6 +32,7 @@ func (s proxyServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		wsClose(ws, websocket.StatusPolicyViolation, "destination header missing")
 		return
 	}
+	log.Debugf("connecting to destination: %s", destination)
 	conn, err := net.Dial("tcp", destination)
 	if err != nil {
 		wsClose(ws, websocket.StatusBadGateway, "failed to connect to destination")
@@ -41,16 +42,6 @@ func (s proxyServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	tcpConn := conn.(*net.TCPConn)
 	proxyio.Join(context.Background(), ws, tcpConn)
 	wsClose(ws, websocket.StatusNormalClosure, "websocket closing")
-	/*
-		err = echo(r.Context(), ws, l)
-		if websocket.CloseStatus(err) == websocket.StatusNormalClosure {
-			return
-		}
-		if err != nil {
-			s.logf("failed to echo with %v: %v", r.RemoteAddr, err)
-			return
-		}
-	*/
 }
 
 func wsClose(ws *websocket.Conn, status websocket.StatusCode, msg string) {
