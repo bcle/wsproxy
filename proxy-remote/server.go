@@ -15,7 +15,8 @@ type proxyServer struct {
 
 func (s proxyServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ws, err := websocket.Accept(w, r, &websocket.AcceptOptions{
-		Subprotocols: []string{s.SubProtocol},
+		Subprotocols:    []string{s.SubProtocol},
+		CompressionMode: websocket.CompressionDisabled,
 	})
 	if err != nil {
 		log.Error("failed to accept websocket: %v", err)

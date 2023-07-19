@@ -2,6 +2,7 @@ package proxyio
 
 import (
 	"context"
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"net"
@@ -44,6 +45,27 @@ func copyToNetFromWs(
 	return
 }
 
+func copy(dst io.Writer, src io.Reader) (written int64, err error) {
+	buf := make([]byte, 4096)
+	for {
+		numRead, err2 := src.Read(buf)
+		if numRead > 0 {
+			log.Debugf("read %d bytes", numRead)
+			numWritten, err3 := dst.Write(buf[:numRead])
+			if err3 != nil {
+				return written, fmt.Errorf("failed to write: %s", err3)
+			}
+			written += int64(numWritten)
+			log.Debugf("wrote %d bytes (%d total)", numWritten, written)
+		}
+		if err2 != nil {
+			log.Debugf("read error: %s", err2)
+			return written, err2
+		}
+	}
+	return
+}
+
 func copyToWsFromNet(
 	ctx context.Context,
 	dst *websocket.Conn,
@@ -57,7 +79,8 @@ func copyToWsFromNet(
 		return
 	}
 	defer writer.Close()
-	numWritten, err := io.Copy(writer, src)
+	//numWritten, err := io.Copy(writer, src)
+	numWritten, err := copy(writer, src)
 	reason := "EOF"
 	if err != nil {
 		reason = err.Error()

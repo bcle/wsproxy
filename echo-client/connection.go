@@ -94,6 +94,9 @@ func (s *session) readWebsocket() {
 			fmt.Println()
 			fmt.Printf("read %d bytes (%d total)\n", numBytes, totalBytes)
 			fmt.Printf("%s\n\n", buf[:numBytes])
+			if numBytes != len(buf) {
+				fmt.Println("short read")
+			}
 		}
 		if err != nil {
 			fmt.Println("error:", err)
