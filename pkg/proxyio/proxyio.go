@@ -2,7 +2,6 @@ package proxyio
 
 import (
 	"context"
-	"fmt"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"net"
@@ -45,6 +44,7 @@ func copyToNetFromWs(
 	return
 }
 
+/*
 func copy(dst io.Writer, src io.Reader) (written int64, err error) {
 	buf := make([]byte, 4096)
 	for {
@@ -65,6 +65,7 @@ func copy(dst io.Writer, src io.Reader) (written int64, err error) {
 	}
 	return
 }
+*/
 
 func copyToWsFromNet(
 	ctx context.Context,
@@ -73,14 +74,37 @@ func copyToWsFromNet(
 	doneChan chan<- string, // to signal that the source is done
 ) {
 	defer func() { doneChan <- src.RemoteAddr().String() }()
-	writer, err := dst.Writer(ctx, websocket.MessageBinary)
-	if err != nil {
-		log.Errorf("failed to get writer from ws: %s", err)
-		return
+
+	var err error
+	var numWritten int
+	buf := make([]byte, 8192)
+	for {
+		numRead, readErr := src.Read(buf)
+		if numRead > 0 {
+			log.Debugf("read %d bytes", numRead)
+			writeErr := dst.Write(ctx, websocket.MessageBinary, buf[:numRead])
+			if writeErr != nil {
+				log.Warnf("failed to write to websocket: %s", writeErr)
+			} else {
+				numWritten += numRead
+				log.Debugf("wrote %d bytes (%d total)", numRead, numWritten)
+			}
+		}
+		if readErr != nil {
+			err = readErr
+			break
+		}
 	}
-	defer writer.Close()
-	//numWritten, err := io.Copy(writer, src)
-	numWritten, err := copy(writer, src)
+	/*
+		writer, err := dst.Writer(ctx, websocket.MessageBinary)
+		if err != nil {
+			log.Errorf("failed to get writer from ws: %s", err)
+			return
+		}
+		defer writer.Close()
+		//numWritten, err := io.Copy(writer, src)
+		numWritten, err := copy(writer, src)
+	*/
 	reason := "EOF"
 	if err != nil {
 		reason = err.Error()

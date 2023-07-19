@@ -80,57 +80,19 @@ func bytesToFormattedHex(bytes []byte) string {
 func (s *session) readWebsocket() {
 	// rxSprintf := color.New(color.FgGreen).SprintfFunc()
 
-	_, reader, err := s.ws.Reader(context.Background())
-	if err != nil {
-		s.errChan <- err
-		return
-	}
 	var totalBytes int
+
 	for {
-		buf := make([]byte, 1024)
-		numBytes, err := reader.Read(buf)
-		if numBytes > 0 {
-			totalBytes += numBytes
-			fmt.Println()
-			fmt.Printf("read %d bytes (%d total)\n", numBytes, totalBytes)
-			fmt.Printf("%s\n\n", buf[:numBytes])
-			if numBytes != len(buf) {
-				fmt.Println("short read")
-			}
-		}
+		// Read out next message
+		_, buf, err := s.ws.Read(context.Background())
 		if err != nil {
-			fmt.Println("error:", err)
-			break
-		}
-	}
-	/*
-		numBytes, err := io.Copy(os.Stdout, reader)
-		if err != nil {
-			s.errChan <- fmt.Errorf("copy failed: %s", err)
+			s.errChan <- fmt.Errorf("failed to read from websocket: %s", err)
 			return
 		}
-	*/
-	fmt.Println("copied a total of", totalBytes, "bytes")
-	/*
-		for {
-			msgType, buf, err := s.ws.Read(context.Background())
-			if err != nil {
-				s.errChan <- err
-				return
-			}
-
-			var text string
-			switch msgType {
-			case websocket.MessageText:
-				text = string(buf)
-			case websocket.MessageBinary:
-				text = bytesToFormattedHex(buf)
-			default:
-				s.errChan <- fmt.Errorf("unknown websocket frame type: %d", msgType)
-				return
-			}
-
-			fmt.Fprint(s.rl.Stdout(), rxSprintf("< %s\n", text))
-		}
-	*/
+		numBytes := len(buf)
+		totalBytes += numBytes
+		fmt.Println()
+		fmt.Printf("read %d bytes (%d total)\n", numBytes, totalBytes)
+		fmt.Printf("%s\n\n", buf[:numBytes])
+	}
 }
