@@ -2,9 +2,9 @@ package main
 
 import (
 	"flag"
-	"fmt"
+	"github.com/bcle/wsproxy/pkg/config"
+	"github.com/bcle/wsproxy/pkg/proxylocal"
 	log "github.com/sirupsen/logrus"
-	"net"
 	"os"
 	"os/signal"
 )
@@ -16,7 +16,9 @@ func main() {
 	var help bool
 	var remoteUrl string
 	var destinationAddr string
+	var configFile string
 
+	flag.StringVar(&configFile, "config", "", "Use specified config file")
 	flag.StringVar(&listenAddr, "listen-address", ":8087", "The host:port address to listen on")
 	flag.StringVar(&remoteUrl, "remote-url", "ws://localhost:8088", "The URL of the remote proxy")
 	flag.StringVar(&destinationAddr, "destination-address", "", "The host:port address of the final destination")
@@ -31,50 +33,37 @@ func main() {
 	if verbose {
 		log.SetLevel(log.DebugLevel)
 	}
-	if destinationAddr == "" {
-		log.Fatal("no destination address specified")
-	}
-	err := run(subProtocol, listenAddr, remoteUrl, destinationAddr)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func run(subProtocol string, listenAddr string, remoteUrl string, destAddr string) error {
-	l, err := net.Listen("tcp", listenAddr)
-	if err != nil {
-		return fmt.Errorf("failed to listen: %s", err)
-	}
-	log.Infof("listening on %v", l.Addr())
-	errc := make(chan error, 1)
-
-	srv := &proxyServer{
-		subProtocol:     subProtocol,
-		remoteUrl:       remoteUrl,
-		destinationAddr: destAddr,
-	}
-	connId := 1
-	for {
-		conn, err := l.Accept()
+	var cfg *config.LocalProxyConfig
+	var err error
+	if configFile != "" {
+		cfg, err = config.LoadFromFile(configFile)
 		if err != nil {
-			return fmt.Errorf("accept failed: %s", err)
+			log.Fatalf("failed to load config file: %s", err)
 		}
-		tcpConn := conn.(*net.TCPConn)
-		go srv.Handle(tcpConn, connId)
-		connId += 1
+	} else {
+		if destinationAddr == "" {
+			log.Fatal("no destination address specified")
+		}
+		cfg = &config.LocalProxyConfig{
+			RemoteProxyUrl: remoteUrl,
+			Services: []config.Service{
+				{
+					Name:               "default",
+					LocalAddress:       listenAddr,
+					DestinationAddress: destinationAddr,
+				},
+			},
+		}
+	}
+	for _, svc := range cfg.Services {
+		go proxylocal.Run(svc.Name, subProtocol, svc.LocalAddress,
+			cfg.RemoteProxyUrl, svc.DestinationAddress)
 	}
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, os.Interrupt)
 	select {
-	case err := <-errc:
-		log.Printf("failed to serve: %v", err)
 	case sig := <-sigs:
 		log.Printf("terminating: %v", sig)
 	}
 
-	/*
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-		defer cancel()
-	*/
-	return nil
 }
