@@ -72,16 +72,6 @@ func copyToWsFromNet(
 			break
 		}
 	}
-	/*
-		writer, err := dst.Writer(ctx, websocket.MessageBinary)
-		if err != nil {
-			log.Errorf("failed to get writer from ws: %s", err)
-			return
-		}
-		defer writer.Close()
-		//numWritten, err := io.Copy(writer, src)
-		numWritten, err := copy(writer, src)
-	*/
 	reason := "EOF"
 	if err != nil {
 		reason = err.Error()
